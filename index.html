@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Siraj ask-teacher: how it works</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11.11.4/dist/style.css">
+<style>
+:root{--bg:#eef2f6;--card:#fff;--ink:#16222e;--mute:#566676;--line:#cbd5df;--edge:#7a8a99;
+--io:#e3e9f0;--llm:#dfe6fb;--ret:#d6efe9;--rtr:#fbe3e6;--new:#fff1cc;--newl:#c98a00;--out:#e4efd9}
+@media (prefers-color-scheme:dark){:root{--bg:#10171e;--card:#18222c;--ink:#e6edf3;--mute:#9aabba;--line:#2c3a47;--edge:#6f8294;
+--io:#212d39;--llm:#242d52;--ret:#173a35;--rtr:#4a2229;--new:#4a3a0c;--newl:#e0a526;--out:#2a3d1f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Figtree,system-ui,sans-serif;
+  -webkit-text-size-adjust:100%}
+header,main{max-width:1180px;margin:0 auto;padding:0 20px}
+header{padding-top:28px}
+h1{font-size:28px;margin:0 0 4px;line-height:1.15}
+header p{margin:0;color:var(--mute);max-width:70ch}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:14px 0;font-size:13px;color:var(--mute)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line)}
+#flow{height:700px;border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden}
+.nd{width:205px;padding:9px 10px;border-radius:8px;border:1px solid var(--line);font-size:11.5px;line-height:1.35;cursor:pointer}
+.nd b{display:block;font-size:12.5px;margin-bottom:3px}
+.nd .n{display:inline-block;min-width:18px;text-align:center;margin-right:6px;border-radius:9px;background:var(--ink);color:var(--bg);font-size:11px;padding:0 5px}
+.nd div{margin-top:2px;color:var(--ink)}
+.nd.new{border:2px dashed var(--newl)}
+.react-flow__handle{width:5px;height:5px;background:var(--edge);border:0;opacity:.6}
+.react-flow__controls-button{background:var(--card);color:var(--ink);border-color:var(--line)}
+.react-flow__controls-button svg{fill:currentColor}
+.react-flow__attribution{display:none}
+.hint{font-size:11px;line-height:1.4;color:var(--mute);background:var(--card);border:1px solid var(--line);
+  border-radius:20px;padding:3px 11px;pointer-events:none;opacity:.9;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+h2{font-size:19px;margin:30px 0 10px}
+.notes{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr));gap:10px}
+.note{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px}
+.note.hit{outline:2px solid var(--newl)}
+.note b .n{display:inline-block;min-width:20px;text-align:center;margin-right:6px;border-radius:10px;background:var(--ink);color:var(--bg);font-size:12px;padding:0 6px}
+.note p{margin:4px 0 0;color:var(--mute)}
+table{border-collapse:collapse;width:100%;background:var(--card);border:1px solid var(--line);font-size:14px}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left}
+th{background:var(--io)}
+.wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ul.w{padding-left:20px;margin:0}ul.w li{margin:6px 0;max-width:95ch}
+code{background:var(--io);padding:0 4px;border-radius:3px;font-size:13px}
+footer{height:40px}
+
+/* ---------- phones / small tablets ---------- */
+@media (max-width:860px){
+  header,main{padding:0 12px}
+  header{padding-top:18px}
+  h1{font-size:clamp(20px,6vw,26px)}
+  header p{font-size:14px}
+  .legend{font-size:12px;gap:6px 12px;margin:10px 0}
+  #flow{height:clamp(400px,60vh,560px);height:clamp(400px,60dvh,560px);border-radius:8px}
+  #flow .nd{width:160px;padding:8px;font-size:11px;line-height:1.3}
+  #flow .nd b{font-size:11.5px;margin-bottom:2px}
+  #flow .nd .n{min-width:16px;font-size:10px;margin-right:4px;padding:0 4px}
+  #flow .react-flow__controls{box-shadow:0 1px 4px rgba(0,0,0,.12)}
+  #flow .react-flow__controls-button{width:24px;height:24px}
+  h2{font-size:17px;margin:24px 0 8px}
+  .notes{grid-template-columns:1fr;gap:8px}
+  .note{font-size:13.5px;padding:9px 11px}
+  .wrap table{min-width:480px}
+  table{font-size:13px}
+  th,td{padding:6px 8px}
+  ul.w{padding-left:18px}
+  ul.w li{font-size:13.5px}
+  code{font-size:12px}
+}
+</style>
+</head>
+<body>
+<header>
+<h1>How ask-teacher finds and answers</h1>
+<p>Question in, intent decided, chunks retrieved, answer out. Click a box to jump to its note. Dashed amber is the re-ranking step you plan to add.</p>
+<div class="legend">
+<span><i style="background:var(--io)"></i>input / plumbing</span>
+<span><i style="background:var(--llm)"></i>LLM call</span>
+<span><i style="background:var(--ret)"></i>retrieval</span>
+<span><i style="background:var(--rtr)"></i>router</span>
+<span><i style="background:var(--new);border:2px dashed var(--newl)"></i>to add</span>
+<span><i style="background:var(--out)"></i>output</span>
+</div>
+</header>
+<main>
+<div id="flow"></div>
+
+<h2>Notes, box by box</h2>
+<div class="notes" id="notes"></div>
+
+<h2>The numbers</h2>
+<div class="wrap"><table>
+<tr><th>Setting</th><th>Standard</th><th>Pro</th></tr>
+<tr><td>Chat history sent to classifier</td><td>last 6 messages</td><td>last 10</td></tr>
+<tr><td>Chunks used after re-rank (planned)</td><td>top 1</td><td>top 3</td></tr>
+<tr><td>QA neighbor sections</td><td>±1</td><td>±2 (exact positions, see below)</td></tr>
+<tr><td>Summary neighbor sections</td><td>none</td><td>±1</td></tr>
+<tr><td>QA agent loop</td><td>off</td><td>up to 2 rounds</td></tr>
+<tr><td>Answer model (AppData key)</td><td><code>ai_model</code></td><td><code>pro_ai_model</code></td></tr>
+<tr><td>Answer max tokens</td><td>4,000</td><td>20,000</td></tr>
+<tr><td>Answer temperature</td><td colspan="2">QA 0.3 · Summary 0.2 · Guidance 0.4</td></tr>
+<tr><td>Exam questions attached to QA/Summary</td><td>none</td><td>3</td></tr>
+<tr><td>EXAM_PREP questions returned</td><td>2</td><td>5</td></tr>
+<tr><td>Credits per question</td><td>1</td><td>2</td></tr>
+</table></div>
+<p></p>
+<div class="wrap"><table>
+<tr><th>Same in both modes</th><th>Value</th></tr>
+<tr><td>Dense embedding</td><td><code>qwen/qwen3-embedding-8b</code> via OpenRouter, 1536 dims, task prefix added to the text (document vs query)</td></tr>
+<tr><td>Sparse embedding</td><td>fastembed <code>Qdrant/bm25</code></td></tr>
+<tr><td>Fusion</td><td>Qdrant prefetch (8 dense + 8 sparse) → RRF → 8 hits</td></tr>
+<tr><td>Metadata filter</td><td>class_level, branch, subject_name; each matches the value or <code>"all"</code></td></tr>
+<tr><td>Classifier</td><td><code>fast_ai_model</code>, temp 0.1, max 3,000, returns JSON (repaired with json_repair)</td></tr>
+<tr><td>Image reading</td><td><code>ocr_ai_model</code>, temp 0.1, max 1,500</td></tr>
+<tr><td>Agent-loop decision call</td><td>default model, temp 0.2, max 10,000</td></tr>
+</table></div>
+
+<h2>What I noticed in the retrieval code</h2>
+<ul class="w">
+<li><b>The rewrite now controls retrieval.</b> The fallback to your original question only fires if the classifier call throws, not when it returns a bad rewrite. Spot-check rewrites on real student questions. The <code>no_ai_chunks_found</code> message is unused now; reuse it in the QA and Summary zero-hit paths if you want it.</li>
+<li><b>Pro QA skips the nearest neighbors.</b> <code>section_order__in=[order-2, order+2]</code> fetches only those two positions, not ±1 and ±2. Pro gets distant sections and loses the adjacent ones. A range filter fixes it.</li>
+<li><b>"No chunks" almost never triggers.</b> RRF returns something whenever the filter matches any chunk, and its score reflects rank, not relevance. A re-ranker gives a score you can threshold, so a weak top hit can lead to "I don't know" instead of a confident wrong answer.</li>
+<li><b>Exam questions lose their ranking.</b> The IDs are ordered by score, but the DB query returns them in its own order, so the "top 3" are the right 3 in arbitrary order. EXAM_PREP does this correctly with a map.</li>
+<li><b>Agent loop check is a substring match.</b> <code>"SUFFICIENT" in response</code> also matches "INSUFFICIENT", if your prompt ever uses that word.</li>
+<li><b>Open decision for Pro (top 3).</b> Neighbors for all 3 chunks can blow up the context; neighbors for the rank-1 chunk only is the cheaper start.</li>
+</ul>
+<footer></footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reactflow@11.11.4/dist/umd/index.js"></script>
+<script>
+const h = React.createElement;
+const RF = window.ReactFlow;
+const Flow = RF.ReactFlow || RF.default;
+const { Handle, Position, Background, Controls, MarkerType, Panel } = RF;
+
+/* ---------- box content ---------- */
+const D = [
+ [1,'io','Student question','Text, image, or both. Nothing else is accepted.|Image goes to the vision model first; its text is appended to the question.|Image questions cost no credits.'],
+ [2,'llm','Classify + rewrite','fast_ai_model · temp 0.1 · max 3000|In: question, chat history, curriculum index.|Out: intent + rewritten question.|Runs before any embedding.'],
+ [3,'rtr','Intent router','QA · SUMMARY · EXAM_PREP · GUIDANCE|Anything else: unsupported.'],
+ [4,'llm','Guidance handler','No embedding, no search.|core + subject + guidance prompts.|temp 0.4 · max 3000'],
+ [5,'ret','Exam prep handler','Embeds the rewritten question.|QuestionsCollection: 8+8 → RRF → 8.|Keep top 2 std / 5 pro. No LLM call.'],
+ [6,'ret','Hybrid retrieval','Embeds the rewritten question here, once.|Dense qwen3-embedding-8b (1536) + sparse BM25.|RAGVectorCollection: 8+8 → RRF → 8 candidates.|Filter: class, branch, subject.'],
+ [7,'new','Re-rank (to add)','Score the 8 candidates, sort.|Keep top 1 in standard, top 3 in pro.|Reranker not chosen yet.'],
+ [8,'llm','QA handler','Neighbors ±1 std / ±2 pro.|Pro: up to 2 agent rounds with a search tool.|std ai_model / pro pro_ai_model · temp 0.3 · max 4k / 20k'],
+ [9,'llm','Summary handler','Neighbors ±1 (pro only).|std ai_model / pro pro_ai_model · temp 0.2 · max 4k / 20k'],
+ [10,'ret','Attach exam questions','Pro only: QuestionsCollection 5+5 → RRF → 10, keep 3.|Standard returns none.'],
+ [11,'out','Save + return','ChatMessage saved with answer, exam questions, references.|Credits 1 std / 2 pro, taken after success.|App polls the task status.'],
+];
+
+/* ---------- layouts ---------- */
+/* desktop: left → right */
+const POS_DESKTOP = {
+  1:[0,0],      2:[0,230],    3:[0,490],
+  4:[260,120],  5:[260,300],  6:[260,470],
+  7:[520,490],  8:[775,400],  9:[775,610],
+  10:[1030,500],11:[1030,230]
+};
+/* phone: top → bottom, two columns, final node bottom-right */
+const POS_MOBILE = {
+  1:[0,0],      2:[0,125],    3:[0,285],
+  6:[0,420],    7:[0,590],    8:[0,725],   10:[0,875],
+  4:[200,285],  5:[200,420],  9:[200,725], 11:[200,1015]
+};
+const MOBILE_GRAPH_W = 360;   /* 160 node + 40 gap + 160 node */
+
+/* ---------- edges ---------- */
+const E_DESKTOP = [
+  [1,2,'b','t'],[2,3,'b','t'],
+  [3,4,'r','l','guidance'],[3,5,'r','l','exam prep'],[3,6,'r','l','QA or summary'],
+  [6,7,'r','l','8 candidates',1],[7,8,'r','l','QA',1],[7,9,'r','l','summary',1],
+  [8,10,'r','l','pro'],[9,10,'r','l','pro'],
+  [10,11,'st','tb'],[4,11,'r','l'],[5,11,'r','l']
+];
+const E_MOBILE = [
+  [1,2,'b','t'],[2,3,'b','t'],
+  [3,4,'r','l','guidance'],[3,5,'r','l','exam prep'],[3,6,'b','t','QA or summary'],
+  [6,7,'b','t','8 candidates',1],[7,8,'b','t','QA'],[7,9,'r','l','summary'],
+  [8,10,'b','t'],[10,11,'b','t'],
+  [4,11,'r','hr'],[5,11,'r','hr'],[9,11,'r','hr']
+];
+
+const NOTES = {
+1:'The endpoint takes text, an image, or both. An image is read by the vision model and that text is appended to the question and stored on the message. Nothing is embedded or searched at this stage.',
+2:'The classifier sees the curriculum index (lesson names and descriptions for this class, branch, subject) and recent chat, so "explain it again" becomes a standalone question. The rewrite is what gets embedded later, so it shapes retrieval. If the call throws, it falls back to QA with your original text; a bad but valid rewrite is not caught.',
+3:'One intent decides the path. Only QA, SUMMARY and EXAM_PREP embed anything. GUIDANCE skips embedding and search completely.',
+4:'Study advice and platform help. It builds the prompt (core, subject module, guidance) and calls the model once. Standard and Pro behave the same.',
+5:'Embeds the rewritten question and searches the exam-question collection. Returns question JSON with a fixed message. Cheapest path: no LLM, and the Qdrant order is preserved.',
+6:'The one place the question is embedded for lesson search. Dense search finds meaning, sparse BM25 finds exact words (important for formulas and terms). Qdrant merges both lists with RRF and returns 8 candidates. Zero hits: QA answers "I do not know", Summary says it cannot find the lesson.',
+7:'New step, scored against the rewritten question. Today the top RRF hit is taken as-is. A re-ranker reads question and chunk together and gives a more reliable order. Take 1 chunk for Standard, 3 for Pro. A score threshold here can also replace the weak zero-hits check.',
+8:'Builds context from the chunk, its lesson metadata and neighbor sections. In Pro, a model first decides if the context is enough; if not it calls search_within_lesson (5+5 → RRF → 5, with ±1 neighbors each), for up to 2 rounds. Then the final answer is written.',
+9:'Same retrieval, but the prompt asks for a summary of the matched lesson section. Neighbors are added only in Pro. No agent loop.',
+10:'In Pro, 3 related past exam questions are fetched with the same question vector and sent along with the answer. Standard skips this box and goes straight to save.',
+11:'Every path ends here. The answer is saved as a ChatMessage and the client polls the Celery task. If the save fails, the task still reports success.'
+};
+
+const clr = {io:'--io',llm:'--llm',ret:'--ret',rtr:'--rtr',new:'--new',out:'--out'};
+
+/* ---------- node ---------- */
+function Box({data}){
+  const hs = [
+    ['t','target',Position.Top],
+    ['l','target',Position.Left],
+    ['tb','target',Position.Bottom],
+    ['r','source',Position.Right],
+    ['b','source',Position.Bottom],
+    ['st','source',Position.Top]
+  ];
+  if(data.hasHR) hs.push(['hr','target',Position.Right]);
+  return h('div',{className:'nd'+(data.kind==='new'?' new':''),style:{background:'var('+clr[data.kind]+')'}},
+    hs.map(x=>h(Handle,{key:x[0],id:x[0],type:x[1],position:x[2]})),
+    h('b',null,h('span',{className:'n'},data.n),data.title),
+    data.lines.map((t,i)=>h('div',{key:i},t)));
+}
+
+function makeNodes(pos,mobile){
+  return D.map(d=>{
+    const p = pos[d[0]];
+    return {
+      id:'n'+d[0], type:'box', position:{x:p[0],y:p[1]}, draggable:false,
+      data:{n:d[0], kind:d[1], title:d[2], lines:d[3].split('|'), hasHR: mobile && d[0]===11}
+    };
+  });
+}
+
+function makeEdges(list){
+  return list.map((e,i)=>({
+    id:'e'+i, source:'n'+e[0], target:'n'+e[1],
+    sourceHandle:e[2], targetHandle:e[3],
+    type:'smoothstep', label:e[4], animated:!!e[5],
+    markerEnd:{type:MarkerType.ArrowClosed,color:'#7a8a99'},
+    style:{stroke:'var(--edge)',strokeWidth:1.5},
+    labelStyle:{fill:'var(--ink)',fontSize:11},
+    labelBgStyle:{fill:'var(--card)'},labelBgPadding:[4,2]
+  }));
+}
+
+/* ---------- responsive hook ---------- */
+const MQ = window.matchMedia('(max-width: 860px)');
+function useMobile(){
+  const [m,setM] = React.useState(MQ.matches);
+  React.useEffect(()=>{
+    const fn = e => setM(e.matches);
+    if(MQ.addEventListener) MQ.addEventListener('change',fn); else MQ.addListener(fn);
+    return ()=>{ if(MQ.removeEventListener) MQ.removeEventListener('change',fn); else MQ.removeListener(fn); };
+  },[]);
+  return m;
+}
+
+/* fit the graph width (not the whole 1100px tall diagram) on phones */
+function mobileViewport(){
+  const vw = Math.min(window.innerWidth || 390, 1180);
+  const w  = Math.max(240, vw - 24 - 2);           /* main padding + #flow border */
+  const zoom = Math.min(1, Math.max(.25, (w - 12) / MOBILE_GRAPH_W));
+  return {x:(w - MOBILE_GRAPH_W*zoom)/2, y:14, zoom};
+}
+
+function App(){
+  const mobile = useMobile();
+  const [inst,setInst] = React.useState(null);
+
+  const nodes = React.useMemo(()=>makeNodes(mobile?POS_MOBILE:POS_DESKTOP, mobile),[mobile]);
+  const edges = React.useMemo(()=>makeEdges(mobile?E_MOBILE:E_DESKTOP),[mobile]);
+
+  React.useEffect(()=>{
+    if(!inst) return;
+    const el = document.getElementById('flow');
+    if(!el) return;
+    if(mobile){
+      const w = el.clientWidth;
+      const zoom = Math.min(1, Math.max(.25, (w - 12) / MOBILE_GRAPH_W));
+      inst.setViewport({x:(w - MOBILE_GRAPH_W*zoom)/2, y:14, zoom},{duration:0});
+    }else{
+      inst.fitView({padding:.04,duration:0});
+    }
+  },[inst,mobile]);
+
+  return h(Flow,{
+    nodes, edges, nodeTypes:{box:Box},
+    defaultViewport: mobile ? mobileViewport() : {x:0,y:0,zoom:1},
+    fitView: !mobile, fitViewOptions:{padding:.04},
+    nodesDraggable:false, nodesConnectable:false,
+    minZoom:.2, maxZoom:2.5,
+    zoomOnScroll:false, preventScrolling:false,
+    onInit:setInst,
+    onNodeClick:(_,n)=>{
+      const el = document.getElementById('note'+n.data.n);
+      if(!el) return;
+      el.scrollIntoView({behavior:'smooth',block:'center'});
+      el.classList.add('hit');
+      setTimeout(()=>el.classList.remove('hit'),1600);
+    }
+  },
+    h(Background,{gap:20,color:'var(--line)'}),
+    h(Controls,{showInteractive:false}),
+    mobile && Panel ? h(Panel,{position:'bottom-center'},
+      h('div',{className:'hint'},'Drag to pan · pinch to zoom')) : null
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('flow')).render(h(App));
+
+document.getElementById('notes').innerHTML = D.map(d=>
+ '<div class="note" id="note'+d[0]+'"><b><span class="n">'+d[0]+'</span>'+d[2]+'</b><p>'+NOTES[d[0]]+'</p></div>').join('');
+</script>
+</body>
+</html>
